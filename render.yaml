@@ -3,7 +3,7 @@ services:
     name: private_gpt-server
     env: python
     buildCommand: "pip install -e .[api]"
-    startCommand: "uvicorn private_gpt.server.__main__:app --host 0.0.0.0 --port $PORT"
+    startCommand: "uvicorn private_gpt.server.server:app --host 0.0.0.0 --port $PORT"
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.3
