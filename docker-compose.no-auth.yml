@@ -14,16 +14,16 @@ services:
       # Enable no-auth mode for development/demos
       # Note: These environment variables may not be fully supported by the server yet
       # Server currently defaults to no authentication
-      - WEBSCOUT_LOG_LEVEL=debug
-      - WEBSCOUT_DEBUG=true
-      - WEBSCOUT_REQUEST_LOGGING=true
+      - private_gpt_LOG_LEVEL=debug
+      - private_gpt_DEBUG=true
+      - private_gpt_REQUEST_LOGGING=true
       # FastAPI metadata
-      - WEBSCOUT_API_TITLE=Private_GPT OpenAI API
-      - WEBSCOUT_API_DESCRIPTION=OpenAI API compatible interface for various LLM providers with enhanced authentication
-      - WEBSCOUT_API_VERSION=0.2.0
-      - WEBSCOUT_API_DOCS_URL=/docs
-      - WEBSCOUT_API_REDOC_URL=/redoc
-      - WEBSCOUT_API_OPENAPI_URL=/openapi.json
+      - private_gpt_API_TITLE=Private_GPT OpenAI API
+      - private_gpt_API_DESCRIPTION=OpenAI API compatible interface for various LLM providers with enhanced authentication
+      - private_gpt_API_VERSION=0.2.0
+      - private_gpt_API_DOCS_URL=/docs
+      - private_gpt_API_REDOC_URL=/redoc
+      - private_gpt_API_OPENAPI_URL=/openapi.json
 
     # Add labels for easy identification
     labels:
@@ -37,8 +37,8 @@ services:
     environment:
       # WARNING: Only use no-auth in production if you understand the security implications
       # Note: These environment variables may not be fully supported by the server yet
-      - WEBSCOUT_LOG_LEVEL=info
-      - WEBSCOUT_REQUEST_LOGGING=true
+      - private_gpt_LOG_LEVEL=info
+      - private_gpt_REQUEST_LOGGING=true
 
     labels:
       - "private_gpt.mode=no-auth-production"
@@ -51,9 +51,9 @@ services:
     environment:
       # Perfect for development
       # Note: Authentication settings may not be fully supported by the server yet
-      - WEBSCOUT_LOG_LEVEL=debug
-      - WEBSCOUT_DEBUG=true
-      - WEBSCOUT_REQUEST_LOGGING=true
+      - private_gpt_LOG_LEVEL=debug
+      - private_gpt_DEBUG=true
+      - private_gpt_REQUEST_LOGGING=true
 
     labels:
       - "private_gpt.mode=no-auth-dev"

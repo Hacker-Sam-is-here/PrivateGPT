@@ -27,7 +27,7 @@ class ServerConfig:
         self.request_timeout: int = 300  # 5 minutes
         self.auth_required: bool = False
         self.rate_limit_enabled: bool = False
-        self.request_logging_enabled: bool = os.getenv("WEBSCOUT_REQUEST_LOGGING", "true").lower() == "true"  # Enable request logging by default
+        self.request_logging_enabled: bool = os.getenv("private_gpt_REQUEST_LOGGING", "true").lower() == "true"  # Enable request logging by default
 
     def update(self, **kwargs) -> None:
         """Update configuration with provided values."""
@@ -57,7 +57,7 @@ class AppConfig:
     base_url: Optional[str] = None
     auth_required: bool = False
     rate_limit_enabled: bool = False
-    request_logging_enabled: bool = os.getenv("WEBSCOUT_REQUEST_LOGGING", "true").lower() == "true"  # Enable request logging by default
+    request_logging_enabled: bool = os.getenv("private_gpt_REQUEST_LOGGING", "true").lower() == "true"  # Enable request logging by default
 
     @classmethod
     def set_config(cls, **data):

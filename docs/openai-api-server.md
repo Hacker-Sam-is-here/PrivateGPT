@@ -288,7 +288,7 @@ The server includes comprehensive Docker support with multiple deployment profil
 docker run -p 8000:8000 private_gpt-api
 
 # With custom configuration
-docker run -p 8080:8080 -e WEBSCOUT_PORT=8080 -e WEBSCOUT_LOG_LEVEL=debug private_gpt-api
+docker run -p 8080:8080 -e private_gpt_PORT=8080 -e private_gpt_LOG_LEVEL=debug private_gpt-api
 
 # Using Docker Compose
 docker-compose up private_gpt-api
@@ -432,28 +432,28 @@ The server supports comprehensive environment variable configuration through bot
 
 ```bash
 # Server settings
-export WEBSCOUT_HOST="0.0.0.0"          # Server host address (default: 0.0.0.0)
-export WEBSCOUT_PORT="8000"             # Server port (default: 8000)
-export WEBSCOUT_WORKERS="1"             # Number of worker processes (default: 1)
-export WEBSCOUT_LOG_LEVEL="info"        # Log level: debug, info, warning, error (default: info)
-export WEBSCOUT_DEBUG="false"           # Enable debug mode (default: false)
+export private_gpt_HOST="0.0.0.0"          # Server host address (default: 0.0.0.0)
+export private_gpt_PORT="8000"             # Server port (default: 8000)
+export private_gpt_WORKERS="1"             # Number of worker processes (default: 1)
+export private_gpt_LOG_LEVEL="info"        # Log level: debug, info, warning, error (default: info)
+export private_gpt_DEBUG="false"           # Enable debug mode (default: false)
 
 # Optional API configuration
-export WEBSCOUT_DEFAULT_PROVIDER="ChatGPT"  # Default provider (default: ChatGPT)
-export WEBSCOUT_BASE_URL="/api/v1"          # Base URL for API (optional)
-export WEBSCOUT_DATA_DIR="/app/data"        # Data directory (default: /app/data)
+export private_gpt_DEFAULT_PROVIDER="ChatGPT"  # Default provider (default: ChatGPT)
+export private_gpt_BASE_URL="/api/v1"          # Base URL for API (optional)
+export private_gpt_DATA_DIR="/app/data"        # Data directory (default: /app/data)
 
 # API Metadata (for documentation)
-export WEBSCOUT_API_TITLE="Private_GPT OpenAI API"                    # API title
-export WEBSCOUT_API_DESCRIPTION="OpenAI API compatible interface for various LLM providers"  # API description
-export WEBSCOUT_API_VERSION="0.2.0"           # API version
-export WEBSCOUT_API_DOCS_URL="/docs"          # Documentation URL (default: /docs)
-export WEBSCOUT_API_REDOC_URL="/redoc"        # ReDoc URL (default: /redoc)
-export WEBSCOUT_API_OPENAPI_URL="/openapi.json"  # OpenAPI spec URL (default: /openapi.json)
+export private_gpt_API_TITLE="Private_GPT OpenAI API"                    # API title
+export private_gpt_API_DESCRIPTION="OpenAI API compatible interface for various LLM providers"  # API description
+export private_gpt_API_VERSION="0.2.0"           # API version
+export private_gpt_API_DOCS_URL="/docs"          # Documentation URL (default: /docs)
+export private_gpt_API_REDOC_URL="/redoc"        # ReDoc URL (default: /redoc)
+export private_gpt_API_OPENAPI_URL="/openapi.json"  # OpenAPI spec URL (default: /openapi.json)
 
 # Advanced configuration
-export WEBSCOUT_REQUEST_LOGGING="true"        # Enable request logging (default: true)
-export WEBSCOUT_CORS_ORIGINS="*"              # CORS allowed origins (default: "*")
+export private_gpt_REQUEST_LOGGING="true"        # Enable request logging (default: true)
+export private_gpt_CORS_ORIGINS="*"              # CORS allowed origins (default: "*")
 ```
 
 ### Configuration Priority

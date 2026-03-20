@@ -1,6 +1,6 @@
 <div align="center">
   <a href="https://github.com/OEvortex/Private_GPT">
-    <img src="https://img.shields.io/badge/WebScout-GGUF%20Converter%20v2.0-blue?style=for-the-badge&logo=python&logoColor=white" alt="GGUF Converter Logo">
+    <img src="https://img.shields.io/badge/private_gpt-GGUF%20Converter%20v2.0-blue?style=for-the-badge&logo=python&logoColor=white" alt="GGUF Converter Logo">
   </a>
 
   <h1>GGUF Converter v2.0</h1>
@@ -86,7 +86,7 @@
 ## ⚙️ Installation
 
 <div class="installation-box">
-<p>The GGUF Converter is included with the WebScout package:</p>
+<p>The GGUF Converter is included with the private_gpt package:</p>
 
 ```bash
 pip install -U private_gpt
@@ -599,7 +599,7 @@ The converter uses the latest llama.cpp features including:
 
 <div align="center">
   <p>
-    <a href="https://github.com/OEvortex/Private_GPT">🔗 Part of the WebScout Project</a> |
+    <a href="https://github.com/OEvortex/Private_GPT">🔗 Part of the private_gpt Project</a> |
     <a href="https://github.com/ggerganov/llama.cpp">🚀 Powered by llama.cpp</a>
   </p>
   

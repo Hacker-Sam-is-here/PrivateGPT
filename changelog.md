@@ -102,8 +102,8 @@ All notable changes to this project will be documented in this file.
 - **OpenAI-compatible Upstage Provider**: `private_gpt/Provider/Openai_comp/upstage.py` - New OpenAI-compatible provider for Upstage AI with dynamic model fetching from `https://api.upstage.ai/v1/models` endpoint. Supports streaming and non-streaming modes with LitAgent browser fingerprinting.
 - **Model Fetcher Infrastructure**: `private_gpt/model_fetcher.py` - Non-blocking model fetching with caching:
   - Thread-safe `ModelFetcherCache` with file-based cache (`~/.private_gpt/model_cache.json`)
-  - TTL support (default 24h, configurable via `WEBSCOUT_MODEL_CACHE_TTL`)
-  - Disable cache with `WEBSCOUT_NO_MODEL_CACHE`
+  - TTL support (default 24h, configurable via `private_gpt_MODEL_CACHE_TTL`)
+  - Disable cache with `private_gpt_NO_MODEL_CACHE`
   - `BackgroundModelFetcher` for async fetching (daemon threads)
   - Graceful timeout (default 10s) and error fallback
   - Thread-safe via `threading.Lock`
@@ -390,7 +390,7 @@ All notable changes to this project will be documented in this file.
   - **Development Version Detection**: Recognizes when the local version is ahead of PyPI (dev mode).
   - **Rich UI**: Integrated with `rich` for beautiful, high-fidelity update panels with vibrant colors and clear call-to-actions.
   - **Performance Optimization**: Implemented result caching (12 hours) and faster connection timeouts (3s) to ensure zero impact on script startup speed.
-  - **Silent Mode**: Automatically disables check in non-TTY environments and respects `WEBSCOUT_NO_UPDATE` environment variable.
+  - **Silent Mode**: Automatically disables check in non-TTY environments and respects `private_gpt_NO_UPDATE` environment variable.
 - **refactor**: `private_gpt/litagent/` - Major overhaul of the LitAgent module:
   - **Modernized Constants**: Updated browser and OS version ranges to reflect 2024/2025 standards (Chrome 131, Firefox 132, macOS 15.0, etc.).
   - **Enhanced Logic**: Improved user agent generation for diverse device types including Smart TVs, Gaming Consoles, and Wearables.

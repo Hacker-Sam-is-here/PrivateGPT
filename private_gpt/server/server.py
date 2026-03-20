@@ -55,14 +55,14 @@ async def lifespan(app: FastAPI):
 
 def create_app():
     """Create and configure the FastAPI application."""
-    app_title = os.getenv("WEBSCOUT_API_TITLE", "Private_GPT API")
+    app_title = os.getenv("private_gpt_API_TITLE", "Private_GPT API")
     app_description = os.getenv(
-        "WEBSCOUT_API_DESCRIPTION", "OpenAI API compatible interface for various LLM providers"
+        "private_gpt_API_DESCRIPTION", "OpenAI API compatible interface for various LLM providers"
     )
-    app_version = os.getenv("WEBSCOUT_API_VERSION", "0.2.0")
-    app_docs_url = os.getenv("WEBSCOUT_API_DOCS_URL", "/docs")
-    app_redoc_url = os.getenv("WEBSCOUT_API_REDOC_URL", "/redoc")
-    app_openapi_url = os.getenv("WEBSCOUT_API_OPENAPI_URL", "/openapi.json")
+    app_version = os.getenv("private_gpt_API_VERSION", "0.2.0")
+    app_docs_url = os.getenv("private_gpt_API_DOCS_URL", "/docs")
+    app_redoc_url = os.getenv("private_gpt_API_REDOC_URL", "/redoc")
+    app_openapi_url = os.getenv("private_gpt_API_OPENAPI_URL", "/openapi.json")
 
     app = FastAPI(
         title=app_title,
@@ -74,7 +74,7 @@ def create_app():
         lifespan=lifespan,
     )
 
-    # Simple Custom Swagger UI with WebScout footer
+    # Simple Custom Swagger UI with private_gpt footer
     @app.get(app_docs_url, include_in_schema=False)
     async def custom_swagger_ui_html():
         openapi_url = app.openapi_url or "/openapi.json"
@@ -87,7 +87,7 @@ def create_app():
         # Custom footer and styles
         footer_html = """
         <div class="private_gpt-footer">
-            Powered by <a href='https://github.com/OEvortex/Private_GPT' target='_blank'>WebScout</a>
+            Powered by <a href='https://github.com/OEvortex/Private_GPT' target='_blank'>private_gpt</a>
         </div>
         """
 
@@ -283,13 +283,13 @@ def main():
     import argparse
 
     # Read environment variables with fallbacks
-    default_port = int(os.getenv("WEBSCOUT_PORT", os.getenv("PORT", DEFAULT_PORT)))
-    default_host = os.getenv("WEBSCOUT_HOST", DEFAULT_HOST)
-    default_workers = int(os.getenv("WEBSCOUT_WORKERS", "1"))
-    default_log_level = os.getenv("WEBSCOUT_LOG_LEVEL", "info")
-    default_provider = os.getenv("WEBSCOUT_DEFAULT_PROVIDER", os.getenv("DEFAULT_PROVIDER"))
-    default_base_url = os.getenv("WEBSCOUT_BASE_URL", os.getenv("BASE_URL"))
-    default_debug = os.getenv("WEBSCOUT_DEBUG", os.getenv("DEBUG", "false")).lower() == "true"
+    default_port = int(os.getenv("private_gpt_PORT", os.getenv("PORT", DEFAULT_PORT)))
+    default_host = os.getenv("private_gpt_HOST", DEFAULT_HOST)
+    default_workers = int(os.getenv("private_gpt_WORKERS", "1"))
+    default_log_level = os.getenv("private_gpt_LOG_LEVEL", "info")
+    default_provider = os.getenv("private_gpt_DEFAULT_PROVIDER", os.getenv("DEFAULT_PROVIDER"))
+    default_base_url = os.getenv("private_gpt_BASE_URL", os.getenv("BASE_URL"))
+    default_debug = os.getenv("private_gpt_DEBUG", os.getenv("DEBUG", "false")).lower() == "true"
 
     parser = argparse.ArgumentParser(description="Start Private_GPT OpenAI-compatible API server")
     parser.add_argument(

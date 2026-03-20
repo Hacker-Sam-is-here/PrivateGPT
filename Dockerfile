@@ -10,7 +10,7 @@
 FROM python:3.11-slim as builder
 
 # Set build arguments for flexibility
-ARG WEBSCOUT_VERSION=latest
+ARG private_gpt_VERSION=latest
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
 
@@ -38,10 +38,10 @@ RUN pip install --upgrade pip setuptools wheel
 
 # Install private_gpt with API dependencies
 # Use specific version if provided, otherwise latest
-RUN if [ "$WEBSCOUT_VERSION" = "latest" ]; then \
+RUN if [ "$private_gpt_VERSION" = "latest" ]; then \
         pip install git+https://github.com/OEvortex/Private_GPT.git#egg=private_gpt[api]; \
     else \
-        pip install git+https://github.com/OEvortex/Private_GPT.git@${WEBSCOUT_VERSION}#egg=private_gpt[api]; \
+        pip install git+https://github.com/OEvortex/Private_GPT.git@${private_gpt_VERSION}#egg=private_gpt[api]; \
     fi
 
 # Install additional production dependencies
@@ -86,22 +86,22 @@ ENV PYTHONUNBUFFERED=1 \
     # Performance settings
     MALLOC_ARENA_MAX=2 \
     # Application settings
-    WEBSCOUT_HOST=0.0.0.0 \
-    WEBSCOUT_PORT=8000 \
-    WEBSCOUT_WORKERS=1 \
-    WEBSCOUT_LOG_LEVEL=info \
-    WEBSCOUT_DEBUG=false \
-    WEBSCOUT_DATA_DIR=/app/data \
-    WEBSCOUT_REQUEST_LOGGING=true \
+    private_gpt_HOST=0.0.0.0 \
+    private_gpt_PORT=8000 \
+    private_gpt_WORKERS=1 \
+    private_gpt_LOG_LEVEL=info \
+    private_gpt_DEBUG=false \
+    private_gpt_DATA_DIR=/app/data \
+    private_gpt_REQUEST_LOGGING=true \
     # FastAPI metadata
-    WEBSCOUT_API_TITLE="Private_GPT OpenAI API" \
-    WEBSCOUT_API_DESCRIPTION="OpenAI API compatible interface for various LLM providers" \
-    WEBSCOUT_API_VERSION="0.2.0" \
-    WEBSCOUT_API_DOCS_URL="/docs" \
-    WEBSCOUT_API_REDOC_URL="/redoc" \
-    WEBSCOUT_API_OPENAPI_URL="/openapi.json" \
+    private_gpt_API_TITLE="Private_GPT OpenAI API" \
+    private_gpt_API_DESCRIPTION="OpenAI API compatible interface for various LLM providers" \
+    private_gpt_API_VERSION="0.2.0" \
+    private_gpt_API_DOCS_URL="/docs" \
+    private_gpt_API_REDOC_URL="/redoc" \
+    private_gpt_API_OPENAPI_URL="/openapi.json" \
     # Dynamic configuration defaults
-    WEBSCOUT_CORS_ORIGINS="*"
+    private_gpt_CORS_ORIGINS="*"
 
 # Install only runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -133,11 +133,11 @@ RUN mkdir -p /app/logs /app/data && \
 USER private_gpt
 
 # Expose port (configurable via environment)
-EXPOSE $WEBSCOUT_PORT
+EXPOSE $private_gpt_PORT
 
 # Add health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:${WEBSCOUT_PORT:-8000}/monitor/health || exit 1
+    CMD curl -f http://localhost:${private_gpt_PORT:-8000}/monitor/health || exit 1
 
 # Default command - start the private_gpt API server with new auth system
 # Environment variables will be used by the application

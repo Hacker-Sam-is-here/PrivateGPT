@@ -1,6 +1,6 @@
 <div align="center">
   <a href="https://github.com/OEvortex/Private_GPT">
-    <img src="https://img.shields.io/badge/WebScout-Ultimate%20Toolkit-blue?style=for-the-badge&logo=python&logoColor=white" alt="WebScout Logo">
+    <img src="https://img.shields.io/badge/private_gpt-Ultimate%20Toolkit-blue?style=for-the-badge&logo=python&logoColor=white" alt="private_gpt Logo">
   </a>
  
   <h1>Private_GPT</h1>

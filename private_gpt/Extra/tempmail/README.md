@@ -1,6 +1,6 @@
 <div align="center">
   <a href="https://github.com/pyscout/Private_GPT">
-    <img src="https://img.shields.io/badge/WebScout-TempMail%20Toolkit-blue?style=for-the-badge&logo=maildotru&logoColor=white" alt="WebScout TempMail Toolkit">
+    <img src="https://img.shields.io/badge/private_gpt-TempMail%20Toolkit-blue?style=for-the-badge&logo=maildotru&logoColor=white" alt="private_gpt TempMail Toolkit">
   </a>
 
   <h1>📧 TempMail</h1>

@@ -14,7 +14,7 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        - WEBSCOUT_VERSION=latest
+        - private_gpt_VERSION=latest
         - BUILD_DATE=${BUILD_DATE:-}
         - VCS_REF=${VCS_REF:-}
         - VERSION=${VERSION:-latest}
@@ -25,37 +25,37 @@ services:
     # Environment configuration
     environment:
       # Server settings
-      - WEBSCOUT_HOST=0.0.0.0
-      - WEBSCOUT_PORT=8000
-      - WEBSCOUT_WORKERS=1
-      - WEBSCOUT_LOG_LEVEL=info
+      - private_gpt_HOST=0.0.0.0
+      - private_gpt_PORT=8000
+      - private_gpt_WORKERS=1
+      - private_gpt_LOG_LEVEL=info
       # FastAPI metadata
-      - WEBSCOUT_API_TITLE=Private_GPT OpenAI API
-      - WEBSCOUT_API_DESCRIPTION=OpenAI API compatible interface for various LLM providers
-      - WEBSCOUT_API_VERSION=0.2.0
-      - WEBSCOUT_API_DOCS_URL=/docs
-      - WEBSCOUT_API_REDOC_URL=/redoc
-      - WEBSCOUT_API_OPENAPI_URL=/openapi.json
-      - WEBSCOUT_DATA_DIR=/app/data
+      - private_gpt_API_TITLE=Private_GPT OpenAI API
+      - private_gpt_API_DESCRIPTION=OpenAI API compatible interface for various LLM providers
+      - private_gpt_API_VERSION=0.2.0
+      - private_gpt_API_DOCS_URL=/docs
+      - private_gpt_API_REDOC_URL=/redoc
+      - private_gpt_API_OPENAPI_URL=/openapi.json
+      - private_gpt_DATA_DIR=/app/data
 
       # Authentication and rate limiting settings
       # Note: These may not be fully supported by the server yet
       # Authentication is currently disabled by default in the server
 
       # Optional API configuration
-      # - WEBSCOUT_DEFAULT_PROVIDER=ChatGPT
-      # - WEBSCOUT_BASE_URL=/api/v1
+      # - private_gpt_DEFAULT_PROVIDER=ChatGPT
+      # - private_gpt_BASE_URL=/api/v1
 
       # Debug mode
-      - WEBSCOUT_DEBUG=false
-      - WEBSCOUT_REQUEST_LOGGING=true
+      - private_gpt_DEBUG=false
+      - private_gpt_REQUEST_LOGGING=true
 
       # Advanced settings
-      - WEBSCOUT_CORS_ORIGINS=*
+      - private_gpt_CORS_ORIGINS=*
 
     # Port mapping
     ports:
-      - "${WEBSCOUT_PORT:-8000}:${WEBSCOUT_PORT:-8000}"
+      - "${private_gpt_PORT:-8000}:${private_gpt_PORT:-8000}"
 
     # Volume mounts for persistence
     volumes:
@@ -103,7 +103,7 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        - WEBSCOUT_VERSION=latest
+        - private_gpt_VERSION=latest
     image: private_gpt-api:latest
     container_name: private_gpt-api-prod
     restart: unless-stopped
@@ -111,23 +111,23 @@ services:
       - production
 
     environment:
-      - WEBSCOUT_HOST=0.0.0.0
-      - WEBSCOUT_PORT=8000
-      - WEBSCOUT_WORKERS=4  # More workers for production
-      - WEBSCOUT_LOG_LEVEL=warning
-      - WEBSCOUT_DEBUG=false
-      - WEBSCOUT_DATA_DIR=/app/data
+      - private_gpt_HOST=0.0.0.0
+      - private_gpt_PORT=8000
+      - private_gpt_WORKERS=4  # More workers for production
+      - private_gpt_LOG_LEVEL=warning
+      - private_gpt_DEBUG=false
+      - private_gpt_DATA_DIR=/app/data
 
       # Authentication settings (production defaults)
       # Note: These may not be fully supported by the server yet
       # Server currently defaults to no authentication
 
       # Security and performance
-      - WEBSCOUT_CORS_ORIGINS=*
-      - WEBSCOUT_REQUEST_LOGGING=true
+      - private_gpt_CORS_ORIGINS=*
+      - private_gpt_REQUEST_LOGGING=true
 
     ports:
-      - "${WEBSCOUT_PORT:-8000}:${WEBSCOUT_PORT:-8000}"
+      - "${private_gpt_PORT:-8000}:${private_gpt_PORT:-8000}"
 
     volumes:
       - private_gpt-logs:/app/logs
@@ -135,7 +135,7 @@ services:
 
     command: [
       "gunicorn",
-      "--bind", "0.0.0.0:${WEBSCOUT_PORT:-8000}",
+      "--bind", "0.0.0.0:${private_gpt_PORT:-8000}",
       "--workers", "4",
       "--worker-class", "uvicorn.workers.UvicornWorker",
       "--log-level", "warning",
@@ -163,7 +163,7 @@ services:
       dockerfile: Dockerfile
       target: builder  # Use builder stage for development
       args:
-        - WEBSCOUT_VERSION=latest
+        - private_gpt_VERSION=latest
     image: private_gpt-api:dev
     container_name: private_gpt-api-dev
     restart: unless-stopped
@@ -171,20 +171,20 @@ services:
       - development
 
     environment:
-      - WEBSCOUT_HOST=0.0.0.0
-      - WEBSCOUT_PORT=8000
-      - WEBSCOUT_WORKERS=1
-      - WEBSCOUT_LOG_LEVEL=debug
-      - WEBSCOUT_DEBUG=true
-      - WEBSCOUT_DATA_DIR=/app/data
+      - private_gpt_HOST=0.0.0.0
+      - private_gpt_PORT=8000
+      - private_gpt_WORKERS=1
+      - private_gpt_LOG_LEVEL=debug
+      - private_gpt_DEBUG=true
+      - private_gpt_DATA_DIR=/app/data
 
       # Development settings
       # Note: Authentication settings may not be fully supported by the server yet
-      - WEBSCOUT_CORS_ORIGINS=*
-      - WEBSCOUT_REQUEST_LOGGING=true
+      - private_gpt_CORS_ORIGINS=*
+      - private_gpt_REQUEST_LOGGING=true
 
     ports:
-      - "${WEBSCOUT_PORT:-8000}:${WEBSCOUT_PORT:-8000}"
+      - "${private_gpt_PORT:-8000}:${private_gpt_PORT:-8000}"
 
     volumes:
       - .:/app  # Mount source code for development
@@ -194,7 +194,7 @@ services:
     command: [
       "uvicorn",
       "--host", "0.0.0.0",
-      "--port", "${WEBSCOUT_PORT:-8000}",
+      "--port", "${private_gpt_PORT:-8000}",
       "--reload",
       "--log-level", "debug",
       "private_gpt.server.server:create_app"

@@ -287,9 +287,9 @@ COHERE_API_KEY=co_your-cohere-key
 GEMINI_API_KEY=your-gemini-key
 
 # Server Configuration
-WEBSCOUT_HOST=0.0.0.0
-WEBSCOUT_PORT=8000
-WEBSCOUT_DEBUG=false
+private_gpt_HOST=0.0.0.0
+private_gpt_PORT=8000
+private_gpt_DEBUG=false
 
 # Timeout settings
 REQUEST_TIMEOUT=30

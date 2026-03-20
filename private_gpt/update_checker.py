@@ -90,7 +90,7 @@ def get_pypi_versions() -> Dict[str, Optional[str]]:
 
 def should_check(force: bool = False) -> bool:
     """Check if we should perform an update check based on cache."""
-    if os.environ.get("WEBSCOUT_NO_UPDATE"):
+    if os.environ.get("private_gpt_NO_UPDATE"):
         return False
 
     if force:
