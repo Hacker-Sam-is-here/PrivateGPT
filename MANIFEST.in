@@ -1,0 +1,13 @@
+include LICENSE.md
+include README.md
+include LEGAL_NOTICE.md
+include changelog.md
+include CHANGELOG.md
+
+recursive-include private_gpt *
+
+# Exclude common unwanted files and directories
+recursive-exclude private_gpt __pycache__
+recursive-exclude private_gpt *.pyc
+recursive-exclude private_gpt *.pyo
+recursive-exclude private_gpt *.pyd

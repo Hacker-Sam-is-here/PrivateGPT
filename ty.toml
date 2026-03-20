@@ -1,0 +1,5 @@
+[src]
+exclude = ["private_gpt/Provider/UNFINISHED/**"]
+
+[environment]
+python-version = "3.14"

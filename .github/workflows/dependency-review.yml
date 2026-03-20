@@ -1,0 +1,41 @@
+name: 'Dependency Review'
+on:
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Checkout Repository'
+        uses: actions/checkout@v5
+      
+      - name: 'Dependency Review'
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+          
+      - name: 'Python Dependency Check'
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: 'Install dependencies'
+        run: |
+          python -m pip install --upgrade pip
+          pip install .[dev]
+
+      - name: 'Install safety'
+        run: pip install safety
+
+      - name: 'Check for vulnerabilities'
+        run: |
+          if [ -f requirements.txt ]; then \
+            safety check -r requirements.txt || true; \
+          else \
+            echo "No requirements.txt found, skipping safety check"; \
+          fi

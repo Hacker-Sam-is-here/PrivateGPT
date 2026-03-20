@@ -1,0 +1,203 @@
+name: Publish to PyPI
+
+on:
+  # Daily beta releases - runs every day at 00:00 UTC
+  schedule:
+    - cron: '0 0 * * *'  # Daily at midnight UTC for beta releases
+    - cron: '0 0 * * 1'  # Every Monday at midnight UTC for stable releases
+  workflow_dispatch:  # Allows manual trigger
+    inputs:
+      release_type:
+        description: 'Release type'
+        required: true
+        type: choice
+        options:
+          - beta
+          - stable
+        default: 'beta'
+
+jobs:
+  determine-release-type:
+    runs-on: ubuntu-latest
+    outputs:
+      release_type: ${{ steps.set_type.outputs.release_type }}
+      should_publish: ${{ steps.check_changes.outputs.should_publish }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine release type
+        id: set_type
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            RELEASE_TYPE="${{ inputs.release_type }}"
+          elif [ "${{ github.event_name }}" == "schedule" ]; then
+            # Check if it's Monday (day 1) for stable release
+            DAY_OF_WEEK=$(date +%u)
+            if [ "$DAY_OF_WEEK" == "1" ]; then
+              RELEASE_TYPE="stable"
+            else
+              RELEASE_TYPE="beta"
+            fi
+          else
+            RELEASE_TYPE="beta"
+          fi
+          echo "release_type=$RELEASE_TYPE" >> $GITHUB_OUTPUT
+          echo "Release type: $RELEASE_TYPE"
+
+      - name: Check for changes since last release
+        id: check_changes
+        run: |
+          # Get the latest tag
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          
+          if [ -z "$LATEST_TAG" ]; then
+            echo "No previous tags found, will publish"
+            echo "should_publish=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # Check if there are any commits since the last tag
+          CHANGES=$(git rev-list $LATEST_TAG..HEAD --count 2>/dev/null || echo "0")
+          
+          if [ "$CHANGES" -gt 0 ]; then
+            echo "Found $CHANGES commits since last release, will publish"
+            echo "should_publish=true" >> $GITHUB_OUTPUT
+          else
+            echo "No changes since last release, skipping"
+            echo "should_publish=false" >> $GITHUB_OUTPUT
+          fi
+
+  check-version:
+    needs: determine-release-type
+    if: needs.determine-release-type.outputs.should_publish == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      new_version: ${{ steps.version_check.outputs.new_version }}
+      release_type: ${{ needs.determine-release-type.outputs.release_type }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Check if version needs update
+        id: version_check
+        run: |
+          RELEASE_TYPE="${{ needs.determine-release-type.outputs.release_type }}"
+          
+          # Get current version from version.py
+          CURRENT_VERSION=$(grep -oP '__version__ = "\K[^"]*' private_gpt/version.py)
+          echo "Current version: $CURRENT_VERSION"
+          
+          # Generate date-based version (YYYY.MM.DD format)
+          DATE_VERSION=$(date +'%Y.%-m.%-d')
+          echo "Date-based version: $DATE_VERSION"
+          
+          if [ "$RELEASE_TYPE" == "beta" ]; then
+            # Beta version format: YYYY.MM.DD.beta.N
+            # Check if we already have a beta version for today
+            if [[ "$CURRENT_VERSION" == "${DATE_VERSION}.beta."* ]]; then
+              # Extract beta number and increment
+              BETA_NUM=$(echo "$CURRENT_VERSION" | grep -oP '\.beta\.\K[0-9]+')
+              NEW_BETA_NUM=$((BETA_NUM + 1))
+              NEW_VERSION="${DATE_VERSION}.beta.${NEW_BETA_NUM}"
+            else
+              # Start with beta.1
+              NEW_VERSION="${DATE_VERSION}.beta.1"
+            fi
+          else
+            # Stable version format: YYYY.MM.DD or YYYY.MM.DD.N
+            if [[ "$CURRENT_VERSION" == "${DATE_VERSION}"* ]] && [[ "$CURRENT_VERSION" != *".beta"* ]]; then
+              # Check if we need a patch number
+              if [[ "$CURRENT_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.([0-9]+)$ ]]; then
+                PATCH=${BASH_REMATCH[1]}
+                NEW_PATCH=$((PATCH + 1))
+                NEW_VERSION="${DATE_VERSION}.${NEW_PATCH}"
+              elif [[ "$CURRENT_VERSION" == "$DATE_VERSION" ]]; then
+                NEW_VERSION="${DATE_VERSION}.1"
+              else
+                NEW_VERSION="$DATE_VERSION"
+              fi
+            else
+              NEW_VERSION="$DATE_VERSION"
+            fi
+          fi
+          
+          echo "New version: $NEW_VERSION"
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+  publish:
+    needs: check-version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install build twine setuptools wheel
+
+      - name: Update version
+        run: |
+          NEW_VERSION="${{ needs.check-version.outputs.new_version }}"
+          echo "Updating version to $NEW_VERSION"
+          sed -i.bak "s/__version__ = \"[^\"]*\"/__version__ = \"$NEW_VERSION\"/" private_gpt/version.py
+          cat private_gpt/version.py
+
+      - name: Build package
+        run: |
+          python -m build
+
+      - name: Publish to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          if [ -z "$TWINE_PASSWORD" ]; then
+            echo "Error: PYPI_API_TOKEN secret is not set"
+            exit 1
+          fi
+          python -m twine upload dist/* --verbose
+
+      - name: Commit version update
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add private_gpt/version.py
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "🔖 Bump version to ${{ needs.check-version.outputs.new_version }}"
+            git push || echo "Failed to push changes - this may be due to branch protection"
+          fi
+
+      - name: Notification
+        run: |
+          RELEASE_TYPE="${{ needs.check-version.outputs.release_type }}"
+          VERSION="${{ needs.check-version.outputs.new_version }}"
+          if [ "$RELEASE_TYPE" == "beta" ]; then
+            echo "✅ Successfully published private_gpt BETA version $VERSION to PyPI!"
+          else
+            echo "✅ Successfully published private_gpt STABLE version $VERSION to PyPI!"
+          fi
+          echo "📝 A release with detailed changelog will be created automatically by the release workflow"
+

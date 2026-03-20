@@ -1,0 +1,276 @@
+# =============================================================================
+# Docker Compose Configuration for Private_GPT API Server
+# Provides multiple deployment scenarios and configurations
+# =============================================================================
+
+version: '3.8'
+
+services:
+  # -----------------------------------------------------------------------------
+  # Main Private_GPT API Server
+  # -----------------------------------------------------------------------------
+  private_gpt-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - WEBSCOUT_VERSION=latest
+        - BUILD_DATE=${BUILD_DATE:-}
+        - VCS_REF=${VCS_REF:-}
+        - VERSION=${VERSION:-latest}
+    image: private_gpt-api:latest
+    container_name: private_gpt-api
+    restart: unless-stopped
+
+    # Environment configuration
+    environment:
+      # Server settings
+      - WEBSCOUT_HOST=0.0.0.0
+      - WEBSCOUT_PORT=8000
+      - WEBSCOUT_WORKERS=1
+      - WEBSCOUT_LOG_LEVEL=info
+      # FastAPI metadata
+      - WEBSCOUT_API_TITLE=Private_GPT OpenAI API
+      - WEBSCOUT_API_DESCRIPTION=OpenAI API compatible interface for various LLM providers
+      - WEBSCOUT_API_VERSION=0.2.0
+      - WEBSCOUT_API_DOCS_URL=/docs
+      - WEBSCOUT_API_REDOC_URL=/redoc
+      - WEBSCOUT_API_OPENAPI_URL=/openapi.json
+      - WEBSCOUT_DATA_DIR=/app/data
+
+      # Authentication and rate limiting settings
+      # Note: These may not be fully supported by the server yet
+      # Authentication is currently disabled by default in the server
+
+      # Optional API configuration
+      # - WEBSCOUT_DEFAULT_PROVIDER=ChatGPT
+      # - WEBSCOUT_BASE_URL=/api/v1
+
+      # Debug mode
+      - WEBSCOUT_DEBUG=false
+      - WEBSCOUT_REQUEST_LOGGING=true
+
+      # Advanced settings
+      - WEBSCOUT_CORS_ORIGINS=*
+
+    # Port mapping
+    ports:
+      - "${WEBSCOUT_PORT:-8000}:${WEBSCOUT_PORT:-8000}"
+
+    # Volume mounts for persistence
+    volumes:
+      - private_gpt-logs:/app/logs
+      - private_gpt-data:/app/data
+
+    # Override default command for enhanced auth system
+    command: ["python", "-m", "private_gpt.server.server"]
+
+    # Health check configuration
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/monitor/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+
+    # Security settings
+    security_opt:
+      - no-new-privileges:true
+    read_only: false  # Set to true for maximum security, but may need adjustments
+
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # -----------------------------------------------------------------------------
+  # Production setup with Gunicorn (alternative configuration)
+  # -----------------------------------------------------------------------------
+  private_gpt-api-production:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - WEBSCOUT_VERSION=latest
+    image: private_gpt-api:latest
+    container_name: private_gpt-api-prod
+    restart: unless-stopped
+    profiles:
+      - production
+
+    environment:
+      - WEBSCOUT_HOST=0.0.0.0
+      - WEBSCOUT_PORT=8000
+      - WEBSCOUT_WORKERS=4  # More workers for production
+      - WEBSCOUT_LOG_LEVEL=warning
+      - WEBSCOUT_DEBUG=false
+      - WEBSCOUT_DATA_DIR=/app/data
+
+      # Authentication settings (production defaults)
+      # Note: These may not be fully supported by the server yet
+      # Server currently defaults to no authentication
+
+      # Security and performance
+      - WEBSCOUT_CORS_ORIGINS=*
+      - WEBSCOUT_REQUEST_LOGGING=true
+
+    ports:
+      - "${WEBSCOUT_PORT:-8000}:${WEBSCOUT_PORT:-8000}"
+
+    volumes:
+      - private_gpt-logs:/app/logs
+      - private_gpt-data:/app/data
+
+    command: [
+      "gunicorn",
+      "--bind", "0.0.0.0:${WEBSCOUT_PORT:-8000}",
+      "--workers", "4",
+      "--worker-class", "uvicorn.workers.UvicornWorker",
+      "--log-level", "warning",
+      "--access-logfile", "/app/logs/access.log",
+      "--error-logfile", "/app/logs/error.log",
+      "--preload",
+      "private_gpt.server.server:create_app"
+    ]
+
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+        reservations:
+          memory: 1G
+          cpus: '1.0'
+
+  # -----------------------------------------------------------------------------
+  # Development setup with hot reload
+  # -----------------------------------------------------------------------------
+  private_gpt-api-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder  # Use builder stage for development
+      args:
+        - WEBSCOUT_VERSION=latest
+    image: private_gpt-api:dev
+    container_name: private_gpt-api-dev
+    restart: unless-stopped
+    profiles:
+      - development
+
+    environment:
+      - WEBSCOUT_HOST=0.0.0.0
+      - WEBSCOUT_PORT=8000
+      - WEBSCOUT_WORKERS=1
+      - WEBSCOUT_LOG_LEVEL=debug
+      - WEBSCOUT_DEBUG=true
+      - WEBSCOUT_DATA_DIR=/app/data
+
+      # Development settings
+      # Note: Authentication settings may not be fully supported by the server yet
+      - WEBSCOUT_CORS_ORIGINS=*
+      - WEBSCOUT_REQUEST_LOGGING=true
+
+    ports:
+      - "${WEBSCOUT_PORT:-8000}:${WEBSCOUT_PORT:-8000}"
+
+    volumes:
+      - .:/app  # Mount source code for development
+      - private_gpt-logs:/app/logs
+      - private_gpt-data:/app/data
+
+    command: [
+      "uvicorn",
+      "--host", "0.0.0.0",
+      "--port", "${WEBSCOUT_PORT:-8000}",
+      "--reload",
+      "--log-level", "debug",
+      "private_gpt.server.server:create_app"
+    ]
+
+  # -----------------------------------------------------------------------------
+  # Nginx reverse proxy (optional)
+  # Note: You'll need to provide your own nginx.conf file
+  # -----------------------------------------------------------------------------
+  nginx:
+    image: nginx:alpine
+    container_name: private_gpt-nginx
+    restart: unless-stopped
+    profiles:
+      - nginx
+      - production
+
+    ports:
+      - "80:80"
+      - "443:443"
+
+    volumes:
+      # Mount your own nginx configuration file
+      # - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      # - ./ssl:/etc/nginx/ssl:ro
+      - private_gpt-logs:/var/log/nginx
+
+    depends_on:
+      - private_gpt-api
+
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/monitor/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # -----------------------------------------------------------------------------
+  # Monitoring with Prometheus (optional)
+  # Note: You'll need to provide your own prometheus.yml configuration file
+  # -----------------------------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: private_gpt-prometheus
+    restart: unless-stopped
+    profiles:
+      - monitoring
+
+    ports:
+      - "9090:9090"
+
+    volumes:
+      # Mount your own prometheus configuration file
+      # - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+
+# =============================================================================
+# Named volumes for data persistence
+# =============================================================================
+volumes:
+  private_gpt-logs:
+    driver: local
+  private_gpt-data:
+    driver: local
+  prometheus-data:
+    driver: local
+
+# =============================================================================
+# Networks (optional, for advanced setups)
+# =============================================================================
+networks:
+  default:
+    name: private_gpt-network
+    driver: bridge

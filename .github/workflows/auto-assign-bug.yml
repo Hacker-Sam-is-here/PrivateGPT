@@ -1,0 +1,36 @@
+name: Auto-assign Copilot for Bug Reports
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  auto-assign:
+    runs-on: ubuntu-latest
+    if: github.event.label.name == 'bug'
+    steps:
+      - name: Add bug report comment
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const issue = context.payload.issue;
+            
+            try {
+              // Add a comment to notify about the bug label
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: `🐛 This issue has been labeled as a bug. The maintainers will review and address it as soon as possible.\n\nThank you for reporting this issue!`
+              });
+              
+              console.log(`Successfully added comment to issue #${issue.number}`);
+              
+            } catch (error) {
+              console.log(`Could not add comment: ${error.message}`);
+            }
