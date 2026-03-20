@@ -56,6 +56,7 @@ dependencies = [
     "html5lib",
     "psutil",
     "aiohttp",
+    "httpx",
     "litprinter",
     "lxml>=5.2.2",
     "pydantic"
