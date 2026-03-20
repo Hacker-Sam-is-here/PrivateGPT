@@ -57,6 +57,8 @@ dependencies = [
     "psutil",
     "aiohttp",
     "httpx",
+    "requests",
+    "tqdm",
     "litprinter",
     "lxml>=5.2.2",
     "pydantic"
