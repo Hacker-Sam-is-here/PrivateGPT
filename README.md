@@ -56,5 +56,3 @@ response = client.chat.completions.create(
 print(response.choices[0].message.content)
 ```
 
-## Updating From Upstream
-To keep your instance up to date without generating merge conflicts, see the guide in `UPDATING.md`.
