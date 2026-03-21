@@ -1,0 +1,18 @@
+import requests
+
+try:
+    response = requests.post(
+        'https://privategpt-uea8.onrender.com/v1/chat/completions',
+        headers={'Content-Type': 'application/json'},
+        json={
+            'model': 'E2B/claude-opus-4-5-20251101',
+            'messages': [{'role': 'user', 'content': 'Hello, just checking if you are back online!'}],
+            'stream': False
+        }
+    )
+    print(f"Status: {response.status_code}")
+    for line in response.iter_lines():
+        if line:
+            print(line.decode('utf-8'))
+except Exception as e:
+    print(f"Connection Error: {e}")
