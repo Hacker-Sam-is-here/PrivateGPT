@@ -60,6 +60,8 @@ class OperaAria(Provider):
         proxies: dict = {},
         history_offset: int = 10250,
         act: Optional[str] = None,
+        model: Optional[str] = None,
+        **kwargs: Any,
     ) -> None:
         self.session = Session(impersonate="chrome110")
         if proxies:
