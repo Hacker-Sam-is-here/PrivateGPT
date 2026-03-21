@@ -379,6 +379,14 @@ class Chat(BaseChat):
 
 class QwenChat(OpenAICompatibleProvider):
     name = "QwenChat"
+    AVAILABLE_MODELS = [
+        "qwen3-235b-a22b",
+        "qwen-plus-2025-01-25",
+        "qwq-32b",
+        "qwen-turbo-2025-02-11",
+        "qwen2.5-omni-7b",
+        "qwen2.5-vl-32b-instruct",
+    ]
     required_auth = False
 
     def __init__(
