@@ -32,6 +32,14 @@ try:
     from private_gpt.litagent import LitAgent
 except ImportError:
     LitAgent = None  # type: ignore
+
+# Initialize proxy manager
+try:
+    from private_gpt.Extra.proxy_manager import ProxyManager
+    e2b_proxy_manager = ProxyManager()
+except ImportError:
+    e2b_proxy_manager = None
+
 # ANSI escape codes for formatting
 
 
@@ -1734,6 +1742,12 @@ class Completions(BaseCompletions):
         if proxies is None:
             proxies = getattr(self._client, "proxies", None)
 
+        # If still no proxies and proxy manager is available, dynamically get a rotated proxy
+        if not proxies and e2b_proxy_manager:
+            pm_proxies = e2b_proxy_manager.get()
+            if pm_proxies:
+                proxies = pm_proxies
+
         for attempt in range(retries):
             try:
                 # Rotate session data for each attempt to avoid detection
@@ -1995,16 +2009,11 @@ class E2B(OpenAICompatibleProvider):
         # Apply proxy configuration if provided
         if self.proxies:
             self.session.proxies.update(self.proxies)
-
-        # Initialize bypass session data
-        self._session_rotation_data = {}
-        self._last_rotation_time = 0
-        self._rotation_interval = 300  # Rotate session every 5 minutes
-        self._rate_limit_failures = 0
-        self._max_rate_limit_failures = 3
-
-        # Initialize the chat interface
-        self.chat = Chat(self)
+        elif e2b_proxy_manager:
+            # Use global proxy manager if no explicit proxies provided
+            pm_proxies = e2b_proxy_manager.get()
+            if pm_proxies:
+                self.session.proxies.update(pm_proxies)
 
         # Initialize bypass session data
         self._session_rotation_data = {}
