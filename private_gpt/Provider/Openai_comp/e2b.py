@@ -1851,7 +1851,8 @@ class Completions(BaseCompletions):
                 wait_time = (2**attempt) + random.uniform(0, 2)
                 time.sleep(wait_time)
 
-        raise ConnectionError(f"E2B API request failed after {retries} attempts.")
+        last_resp = response.text if 'response' in locals() else "no object"
+        raise ConnectionError(f"E2B API request failed. Last resp: {last_resp}")
 
     def _create_non_stream(
         self,
@@ -2145,11 +2146,8 @@ class E2B(OpenAICompatibleProvider):
     def handle_rate_limit_retry(self, attempt, max_retries):
         """Handle rate limit retry with exponential backoff and session rotation."""
         self._rate_limit_failures += 1
-
-        if self._rate_limit_failures >= self._max_rate_limit_failures:
-            # Force session rotation after multiple failures
-            self.rotate_session_data(force_rotation=True)
-            self._rate_limit_failures = 0
+        # Immediately rotate session on rate limits
+        self.rotate_session_data(force_rotation=True)
 
         # Calculate wait time with jitter
         base_wait = min(2**attempt, 60)  # Cap at 60 seconds
