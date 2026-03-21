@@ -66,6 +66,7 @@ from private_gpt.Provider.Openai_comp.utils import (
 )
 from private_gpt.Provider.Openai_comp.wisecat import WiseCat
 from private_gpt.Provider.Openai_comp.writecream import Writecream
+from private_gpt.Provider.Openai_comp.qwenchat import QwenChat
 from private_gpt.Provider.Openai_comp.zenmux import Zenmux
 
 # List of all exported names
@@ -128,6 +129,7 @@ __all__ = [
     "Toolbaz",
     "Upstage",
     "WiseCat",
+    "QwenChat",
     "Writecream",
     "YEPCHAT",
     "Zenmux",
