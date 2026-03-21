@@ -47,6 +47,7 @@ class OperaAria(Provider):
     A class to interact with the Opera Aria API.
     """
     required_auth = False
+    AVAILABLE_MODELS = ["aria"]
 
     def __init__(
         self,
