@@ -380,6 +380,9 @@ class Chat(BaseChat):
 class QwenChat(OpenAICompatibleProvider):
     name = "QwenChat"
     AVAILABLE_MODELS = [
+        "qwen3.5-plus",
+        "qwen3.5-flash",
+        "qwen3.5-397b-a17b",
         "qwen3-max-preview",
         "qwen-plus-2025-09-11",
         "qwen3-235b-a22b",
