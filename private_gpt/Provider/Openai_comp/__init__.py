@@ -4,6 +4,7 @@
 # Base classes and utilities
 from private_gpt.Provider.Openai_comp.ai4chat import AI4Chat
 from private_gpt.Provider.Openai_comp.akashgpt import AkashGPT
+from private_gpt.Provider.Openai_comp.avasupernova import AvaSupernova
 from private_gpt.Provider.Openai_comp.ayle import Ayle
 from private_gpt.Provider.Openai_comp.base import (
     BaseChat,
@@ -40,7 +41,6 @@ from private_gpt.Provider.Openai_comp.PI import PiAI
 from private_gpt.Provider.Openai_comp.sambanova import Sambanova
 from private_gpt.Provider.Openai_comp.sonus import SonusAI
 from private_gpt.Provider.Openai_comp.textpollinations import TextPollinations
-from private_gpt.Provider.Openai_comp.avasupernova import AvaSupernova
 from private_gpt.Provider.Openai_comp.TogetherAI import TogetherAI
 from private_gpt.Provider.Openai_comp.toolbaz import Toolbaz
 from private_gpt.Provider.Openai_comp.TwoAI import TwoAI
@@ -135,3 +135,25 @@ __all__ = [
     "Meta",
     "TypliAI",
 ]
+
+# --- Dynamic Legacy Providers Loading ---
+try:
+    from private_gpt.AIauto import load_providers
+    from private_gpt.Provider.Openai_comp.legacy_adapters import create_adapter
+
+    # Load all standard providers not natively in Openai_comp
+    provider_map, _ = load_providers()
+    _globals = globals()
+
+    for _name, _provider_cls in provider_map.items():
+        # Avoid overriding existing native wrappers in Openai_comp
+        real_name = getattr(_provider_cls, "__name__", _name)
+        if real_name not in _globals:
+            adapted_cls = create_adapter(_provider_cls)
+            _globals[real_name] = adapted_cls
+            if "__all__" in _globals:
+                _globals["__all__"].append(real_name)
+except Exception as e:
+    from litprinter import ic
+    ic.configureOutput(prefix='WARNING| ')
+    ic(f"Failed to dynamically load legacy providers: {e}")
