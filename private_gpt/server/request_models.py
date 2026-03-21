@@ -132,3 +132,28 @@ class ErrorDetail(BaseModel):
 class ErrorResponse(BaseModel):
     """Error response structure compatible with OpenAI API."""
     error: ErrorDetail
+
+class AudioSpeechRequest(BaseModel):
+    """Request model for OpenAI-compatible audio speech generation endpoint."""
+    model: str = Field(..., description="The TTS model to use.")
+    input: str = Field(..., description="The text to generate audio for. The maximum length is 4096 characters.")
+    voice: str = Field(..., description="The voice to use when generating the audio.")
+    response_format: Optional[Literal["mp3", "opus", "aac", "flac", "wav", "pcm"]] = Field(
+        "mp3", description="The format to return the audio in."
+    )
+    speed: Optional[float] = Field(
+        1.0, description="The speed of the generated audio. Select a value from 0.25 to 4.0."
+    )
+
+    model_config = ConfigDict(
+        extra="ignore",
+        json_schema_extra={
+            "example": {
+                "model": "OpenAIFMTTS",
+                "input": "Today is a wonderful day to build something people love!",
+                "voice": "alloy",
+                "response_format": "mp3",
+                "speed": 1.0
+            }
+        }
+    )

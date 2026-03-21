@@ -25,7 +25,12 @@ from .providers import (
     resolve_provider_and_model,
     resolve_tti_provider_and_model,
 )
-from .request_models import ChatCompletionRequest, ImageGenerationRequest, ModelListResponse
+from .request_models import (
+    AudioSpeechRequest,
+    ChatCompletionRequest,
+    ImageGenerationRequest,
+    ModelListResponse,
+)
 from .request_processing import (
     handle_non_streaming_response,
     handle_streaming_response,
@@ -507,6 +512,65 @@ class Api:
                 )
 
 
+
+        @self.app.post(
+            "/v1/audio/speech",
+            tags=["Audio Generation"],
+            description="Generate audio from text using TTS models."
+        )
+        def audio_speech(
+            speech_request: AudioSpeechRequest = Body(...)
+        ):
+            """Handle audio speech generation requests."""
+            from fastapi.responses import StreamingResponse
+            request_id = f"audio-{uuid.uuid4()}"
+
+            try:
+                model_name = speech_request.model
+                provider_name = "OpenAIFMTTS" # default
+
+                # Parse Provider/ModelName syntax if present
+                if "/" in model_name:
+                    provider_name, model_name = model_name.split("/", 1)
+                elif model_name.lower() == "openaifmtts":
+                    model_name = "tts-1"
+
+                ic.configureOutput(prefix='INFO| ')
+                ic(f"Processing speech request {request_id} via {provider_name} for model: {model_name}")
+
+                # Load chosen requested provider (defaults to OpenAIFMTTS)
+                if provider_name.lower() == "openaifmtts":
+                    from private_gpt.Provider.TTS.openai_fm import OpenAIFMTTS
+                    provider = OpenAIFMTTS()
+                elif provider_name.lower() == "murfai" or provider_name.lower() == "murfaitts":
+                    from private_gpt.Provider.TTS.murfai import MurfAITTS
+                    provider = MurfAITTS()
+                    if not model_name or model_name == "murfai":
+                        model_name = "GENZ"
+                else:
+                    from private_gpt.Provider.TTS.openai_fm import OpenAIFMTTS
+                    provider = OpenAIFMTTS() # Fallback
+
+                generator = provider.stream_audio(
+                    text=speech_request.input,
+                    model=model_name,
+                    voice=speech_request.voice,
+                    response_format=speech_request.response_format,
+                )
+
+                media_type = f"audio/{speech_request.response_format}"
+                if speech_request.response_format == "mp3":
+                    media_type = "audio/mpeg"
+
+                return StreamingResponse(generator, media_type=media_type)
+            except Exception as e:
+                ic.configureOutput(prefix='ERROR| ')
+                ic(f"Unexpected error in speech generation {request_id}: {e}")
+                raise APIError(
+                    f"Internal server error: {str(e)}",
+                    HTTP_500_INTERNAL_SERVER_ERROR,
+                    "internal_error"
+                )
 
     def _register_websearch_routes(self):
         """Register web search endpoint."""
