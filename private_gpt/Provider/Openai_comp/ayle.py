@@ -172,6 +172,7 @@ class Completions(BaseCompletions):
                 json=payload,
                 timeout=timeout or self._client.timeout,
                 proxies=proxies or getattr(self._client, "proxies", None),
+                stream=True,
             )
             response.raise_for_status()
 
