@@ -55,6 +55,22 @@ class ProxyManager:
             loaded.extend([line.strip() for line in fb.read_text().splitlines() if line.strip()])
         return list(dict.fromkeys(loaded))
 
+    async def _fetch_public_proxies(self) -> list[str]:
+        """Fetch proxies from a reliable public list as a fallback."""
+        try:
+            url = "https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/http.txt"
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(url, timeout=10)
+                if resp.status_code == 200:
+                    proxies = [f"http://{p.strip()}" for p in resp.text.splitlines() if p.strip()]
+                    import random
+                    random.shuffle(proxies)
+                    return proxies[:30] # Return 30 random proxies for the pool
+        except Exception as e:
+            if self.debug:
+                ic(f"Failed to fetch public proxies: {e}")
+        return []
+
     async def _fetch_urban_proxies(self) -> list[str]:
         """Fetch proxies from Urban VPN API."""
         import random
@@ -77,6 +93,12 @@ class ProxyManager:
                             "clientApp": {"name": "URBAN_VPN_BROWSER_EXTENSION", "browser": "CHROME"}
                         },
                     )
+                    
+                    if r.status_code == 429:
+                        if self.debug:
+                            ic("Urban VPN rate limited. Falling back to public free proxy list...")
+                        return await self._fetch_public_proxies()
+                        
                     r.raise_for_status()
                     anon_response = r.json()
                     if "value" not in anon_response:
@@ -164,7 +186,9 @@ class ProxyManager:
             proxies = asyncio.run(self._fetch_urban_proxies())
             if proxies:
                 with self._lock:
-                    self._proxies = list(dict.fromkeys(self._proxies + proxies))
+                    # Replace old proxies to avoid 407 Proxy Authentication errors
+                    # from expired VPN session tokens hanging around in the pool.
+                    self._proxies = list(dict.fromkeys(proxies))
                     self._pool = cycle(self._proxies)
                 try:
                     Path("cached_proxies.txt").write_text("\n".join(self._proxies))
