@@ -12,6 +12,11 @@ from private_gpt import exceptions
 from private_gpt.litagent import LitAgent
 from private_gpt.Provider.TTS.base import BaseTTSProvider
 
+try:
+    from private_gpt.Extra.proxy_manager import ProxyManager
+    openaifm_proxy_manager = ProxyManager()
+except ImportError:
+    openaifm_proxy_manager = None
 
 class OpenAIFMTTS(BaseTTSProvider):
     """
@@ -149,9 +154,18 @@ class OpenAIFMTTS(BaseTTSProvider):
             "response_format": response_format,
         }
 
+        # Handle proxy rotation
+        request_kwargs = {"params": params, "timeout": self.timeout}
+        if not kwargs.get("proxies") and openaifm_proxy_manager:
+            pm_proxies = openaifm_proxy_manager.get()
+            if pm_proxies:
+                request_kwargs["proxies"] = pm_proxies
+        elif kwargs.get("proxies"):
+            request_kwargs["proxies"] = kwargs.get("proxies")
+
         try:
             # Make the API request
-            response = self.session.get(self.api_url, params=params, timeout=self.timeout)
+            response = self.session.get(self.api_url, **request_kwargs)
             response.raise_for_status()
 
             # Validate response content

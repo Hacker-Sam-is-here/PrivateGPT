@@ -233,7 +233,7 @@ class BaseTTSProvider(TTSProvider):
         Yields:
             Generator[bytes, None, None]: Audio data chunks
         """
-        # Generate the audio file using create_speech
+        # Generate the audio file using create_speech (executed synchronously to catch errors early)
         audio_file = self.create_speech(
             input_text=text,
             model=model,
@@ -243,10 +243,13 @@ class BaseTTSProvider(TTSProvider):
             verbose=verbose,
         )
 
-        # Stream the file in chunks
-        with open(audio_file, "rb") as f:
-            while chunk := f.read(chunk_size):
-                yield chunk
+        def generate_chunks() -> Generator[bytes, None, None]:
+            # Stream the file in chunks
+            with open(audio_file, "rb") as f:
+                while chunk := f.read(chunk_size):
+                    yield chunk
+
+        return generate_chunks()
 
     def tts(self, text: str, voice: Optional[str] = None, verbose: bool = False, **kwargs) -> str:
         """
