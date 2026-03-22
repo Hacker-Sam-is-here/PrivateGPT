@@ -99,7 +99,7 @@ class Completions(BaseCompletions):
                 "https://data.toolbaz.com/writing.php",
                 data=data,
                 stream=True,
-                timeout=timeout or self._client.timeout,
+                timeout=timeout or self._client.timeout or 120,
                 impersonate="chrome110",
             )
             resp.raise_for_status()
@@ -202,7 +202,7 @@ class Completions(BaseCompletions):
             resp = self._client.session.post(
                 "https://data.toolbaz.com/writing.php",
                 data=data,
-                timeout=timeout or self._client.timeout,
+                timeout=timeout or self._client.timeout or 120,
                 impersonate="chrome110",
             )
             resp.raise_for_status()
@@ -280,7 +280,7 @@ class Toolbaz(OpenAICompatibleProvider):
         "unfiltered_x",
     ]
 
-    def __init__(self, timeout: int = 30, proxies: dict = {}, browser: str = "chrome"):
+    def __init__(self, timeout: int = 120, proxies: dict = {}, browser: str = "chrome"):
         """
         Initialize the Toolbaz client.
 

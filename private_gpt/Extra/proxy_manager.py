@@ -45,101 +45,118 @@ class ProxyManager:
             threading.Thread(target=self._background_refresh, daemon=True).start()
 
     def _load_initial(self, proxies: Optional[list[str]], filepath: Optional[str]) -> list[str]:
+        loaded = []
         if proxies:
-            return [p.strip() for p in proxies if p.strip()]
+            loaded.extend([p.strip() for p in proxies if p.strip()])
         if filepath and (p := Path(filepath)).exists():
-            return [line.strip() for line in p.read_text().splitlines() if line.strip()]
-        return []
+            loaded.extend([line.strip() for line in p.read_text().splitlines() if line.strip()])
+        fb = Path("cached_proxies.txt")
+        if fb.exists():
+            loaded.extend([line.strip() for line in fb.read_text().splitlines() if line.strip()])
+        return list(dict.fromkeys(loaded))
 
     async def _fetch_urban_proxies(self) -> list[str]:
         """Fetch proxies from Urban VPN API."""
-        async with httpx.AsyncClient(headers=self._headers, timeout=10) as client:
+        import random
+        proxy_urls = [None]
+        with self._lock:
+            if self._proxies:
+                proxy_urls = random.sample(self._proxies, min(3, len(self._proxies))) + [None]
+        
+        last_err = None
+        for proxy_url in proxy_urls:
+            client_kwargs = {"headers": self._headers, "timeout": 15}
+            if proxy_url:
+                client_kwargs["proxy"] = proxy_url
             try:
-                # 1. Anon Token
-                r = await client.post(
-                    "https://api-pro.falais.com/rest/v1/registrations/clientApps/URBAN_VPN_BROWSER_EXTENSION/users/anonymous",
-                    json={
-                        "clientApp": {"name": "URBAN_VPN_BROWSER_EXTENSION", "browser": "CHROME"}
-                    },
-                )
-                r.raise_for_status()
-                anon_response = r.json()
-                if "value" not in anon_response:
-                    if self.debug:
-                        ic(f"Urban VPN anon response: {anon_response}")
-                    return []
-                anon_token = anon_response["value"]
+                async with httpx.AsyncClient(**client_kwargs) as client:
+                    # 1. Anon Token
+                    r = await client.post(
+                        "https://api-pro.falais.com/rest/v1/registrations/clientApps/URBAN_VPN_BROWSER_EXTENSION/users/anonymous",
+                        json={
+                            "clientApp": {"name": "URBAN_VPN_BROWSER_EXTENSION", "browser": "CHROME"}
+                        },
+                    )
+                    r.raise_for_status()
+                    anon_response = r.json()
+                    if "value" not in anon_response:
+                        if self.debug:
+                            ic(f"Urban VPN anon response: {anon_response}")
+                        return []
+                    anon_token = anon_response["value"]
 
-                # 2. Access Token
-                r = await client.post(
-                    "https://api-pro.falais.com/rest/v1/security/tokens/accs",
-                    headers={"authorization": f"Bearer {anon_token}"},
-                    json={"type": "accs", "clientApp": {"name": "URBAN_VPN_BROWSER_EXTENSION"}},
-                )
-                r.raise_for_status()
-                accs = r.json()
-                if "value" not in accs:
-                    if self.debug:
-                        ic(f"Urban VPN accs response: {accs}")
-                    return []
-                token = accs["value"]
+                    # 2. Access Token
+                    r = await client.post(
+                        "https://api-pro.falais.com/rest/v1/security/tokens/accs",
+                        headers={"authorization": f"Bearer {anon_token}"},
+                        json={"type": "accs", "clientApp": {"name": "URBAN_VPN_BROWSER_EXTENSION"}},
+                    )
+                    r.raise_for_status()
+                    accs = r.json()
+                    if "value" not in accs:
+                        if self.debug:
+                            ic(f"Urban VPN accs response: {accs}")
+                        return []
+                    token = accs["value"]
 
-                # 3. Countries
-                r = await client.get(
-                    "https://stats.falais.com/api/rest/v2/entrypoints/countries",
-                    headers={
-                        "authorization": f"Bearer {token}",
-                        "x-client-app": "URBAN_VPN_BROWSER_EXTENSION",
-                    },
-                )
-                r.raise_for_status()
-                countries_response = r.json()
-                if (
-                    "countries" not in countries_response
-                    or "elements" not in countries_response["countries"]
-                ):
-                    if self.debug:
-                        ic(f"Urban VPN countries response: {countries_response}")
-                    return []
-                countries = countries_response["countries"]["elements"]
+                    # 3. Countries
+                    r = await client.get(
+                        "https://stats.falais.com/api/rest/v2/entrypoints/countries",
+                        headers={
+                            "authorization": f"Bearer {token}",
+                            "x-client-app": "URBAN_VPN_BROWSER_EXTENSION",
+                        },
+                    )
+                    r.raise_for_status()
+                    countries_response = r.json()
+                    if (
+                        "countries" not in countries_response
+                        or "elements" not in countries_response["countries"]
+                    ):
+                        if self.debug:
+                            ic(f"Urban VPN countries response: {countries_response}")
+                        return []
+                    countries = countries_response["countries"]["elements"]
 
-                # 4. Fetch credentials for a few random servers to keep it fast
-                new_proxies = []
-                for country in countries[:10]:  # Limit to 10 countries for speed
-                    if "servers" not in country or not country["servers"]["elements"]:
-                        continue
-                    for server in country["servers"]["elements"][:1]:  # 1 server per country
-                        if not server.get("signature"):
+                    # 4. Fetch credentials for a few random servers to keep it fast
+                    new_proxies = []
+                    for country in countries[:10]:  # Limit to 10 countries for speed
+                        if "servers" not in country or not country["servers"]["elements"]:
                             continue
-                        r = await client.post(
-                            "https://api-pro.falais.com/rest/v1/security/tokens/accs-proxy",
-                            headers={"authorization": f"Bearer {token}"},
-                            json={
-                                "type": "accs-proxy",
-                                "clientApp": {"name": "URBAN_VPN_BROWSER_EXTENSION"},
-                                "signature": server["signature"],
-                            },
-                        )
-                        r.raise_for_status()
-                        cred_response = r.json()
-                        if "value" not in cred_response:
-                            if self.debug:
-                                ic(f"Urban VPN cred response: {cred_response}")
-                            continue
-                        cred = cred_response["value"]
-                        if "address" not in server or "primary" not in server["address"]:
-                            continue
-                        server_addr = server["address"]["primary"]
-                        if "ip" not in server_addr or "port" not in server_addr:
-                            continue
-                        new_proxies.append(
-                            f"http://{cred}:{cred}@{server_addr['ip']}:{server_addr['port']}"
-                        )
-                return new_proxies
+                        for server in country["servers"]["elements"][:1]:  # 1 server per country
+                            if not server.get("signature"):
+                                continue
+                            r = await client.post(
+                                "https://api-pro.falais.com/rest/v1/security/tokens/accs-proxy",
+                                headers={"authorization": f"Bearer {token}"},
+                                json={
+                                    "type": "accs-proxy",
+                                    "clientApp": {"name": "URBAN_VPN_BROWSER_EXTENSION"},
+                                    "signature": server["signature"],
+                                },
+                            )
+                            r.raise_for_status()
+                            cred_response = r.json()
+                            if "value" not in cred_response:
+                                if self.debug:
+                                    ic(f"Urban VPN cred response: {cred_response}")
+                                continue
+                            cred = cred_response["value"]
+                            if "address" not in server or "primary" not in server["address"]:
+                                continue
+                            server_addr = server["address"]["primary"]
+                            if "ip" not in server_addr or "port" not in server_addr:
+                                continue
+                            new_proxies.append(
+                                f"http://{cred}:{cred}@{server_addr['ip']}:{server_addr['port']}"
+                            )
+                    return new_proxies
             except Exception as e:
-                if self.debug:
-                    ic(f"Proxy fetch failed: {e}")
-                return []
+                last_err = e
+                continue
+        if self.debug and last_err:
+            ic(f"Proxy fetch failed all attempts: {last_err}")
+        return []
 
     def _background_refresh(self) -> None:
         """Background loop to refresh proxies."""
@@ -147,8 +164,12 @@ class ProxyManager:
             proxies = asyncio.run(self._fetch_urban_proxies())
             if proxies:
                 with self._lock:
-                    self._proxies = proxies
+                    self._proxies = list(dict.fromkeys(self._proxies + proxies))
                     self._pool = cycle(self._proxies)
+                try:
+                    Path("cached_proxies.txt").write_text("\n".join(self._proxies))
+                except Exception:
+                    pass
                 if self.debug:
                     ic(f"Refreshed {len(proxies)} proxies background")
             time.sleep(1800)  # Refresh every 30 mins

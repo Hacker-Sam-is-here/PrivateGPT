@@ -171,4 +171,4 @@ _plans/*
 !_plans/.gitkeep
 .zenflow/
 .blackboxrules
-.claude
+.claudecached_proxies.txt
