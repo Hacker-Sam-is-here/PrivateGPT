@@ -305,7 +305,7 @@ class Completions(BaseCompletions):
             return self._stream_response(response, model)
         else:
             response = session.post(f'{base_url}/api/v2/chat/completions?chat_id={chat_id}', json=msg_payload, headers=headers, proxies={"all": proxy_url} if proxy_url else None)
-            return self._process_response(response.json(), model)
+            print("RAW:", response.json()); print("RAW:", response.json()); return self._process_response(response.json(), model)
 
     def _stream_response(
         self, response: Response, model: str
@@ -326,6 +326,8 @@ class Completions(BaseCompletions):
 
             try:
                 data = json.loads(json_str)
+                if not data.get("success", True):
+                    raise Exception(f"AliBaba API Error: {data.get('data', {}).get('details', data)}")
                 choices = data.get("choices", [])
                 if not choices:
                     continue
