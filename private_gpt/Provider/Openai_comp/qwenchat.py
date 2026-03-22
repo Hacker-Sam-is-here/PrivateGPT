@@ -9,6 +9,8 @@ from curl_cffi.requests import RequestsError, Session
 
 from private_gpt.AIbase import Response
 from private_gpt.litagent import LitAgent
+from private_gpt.Extra.proxy_manager import ProxyManager
+qwen_proxy_manager = ProxyManager()  # Fallback proxy manager
 
 from private_gpt.Provider.Openai_comp.base import (
     BaseChat,
@@ -240,6 +242,10 @@ class Completions(BaseCompletions):
 
         session = self._client.session
         proxy_url = proxies.get("all") if proxies else self._client.session.proxies.get("all")
+        if not proxy_url and qwen_proxy_manager:
+            pm_proxies = qwen_proxy_manager.get()
+            if pm_proxies:
+                proxy_url = pm_proxies.get("http") # proxy_manager returns {"http": ..., "https": ...}
 
         # Phase 1: Get Midtoken
         r = session.get('https://sg-wum.alibaba.com/w/wu.json', proxies={"all": proxy_url} if proxy_url else None)

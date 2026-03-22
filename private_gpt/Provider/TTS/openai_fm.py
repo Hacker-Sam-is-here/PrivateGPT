@@ -163,45 +163,52 @@ class OpenAIFMTTS(BaseTTSProvider):
         elif kwargs.get("proxies"):
             request_kwargs["proxies"] = kwargs.get("proxies")
 
-        try:
-            # Make the API request
-            response = self.session.get(self.api_url, **request_kwargs)
-            response.raise_for_status()
+        max_retries = 3
+        last_error = None
+        for attempt in range(max_retries):
+            try:
+                # Update proxies internally if it fails and needs retry
+                if attempt > 0 and openaifm_proxy_manager and not kwargs.get("proxies"):
+                    pm_proxies = openaifm_proxy_manager.get()
+                    if pm_proxies:
+                        request_kwargs["proxies"] = pm_proxies
+                        
+                # Make the API request
+                response = self.session.get(self.api_url, **request_kwargs)
+                response.raise_for_status()
+                
+                # Validate response content
+                if not response.content:
+                    raise exceptions.FailedToGenerateResponseError("Empty response from API")
+                    
+                # Save the audio file
+                with open(filename, "wb") as f:
+                    f.write(response.content)
+                
+                if verbose:
+                    ic.configureOutput(prefix="DEBUG| ")
+                    ic("Speech generated successfully")
+                    ic.configureOutput(prefix="DEBUG| ")
+                    ic(f"Model: {model}")
+                    ic.configureOutput(prefix="DEBUG| ")
+                    ic(f"Voice: {voice}")
+                    ic.configureOutput(prefix="DEBUG| ")
+                    ic(f"Format: {response_format}")
+                    ic.configureOutput(prefix="DEBUG| ")
+                    ic(f"Audio saved to {filename}")
 
-            # Validate response content
-            if not response.content:
-                raise exceptions.FailedToGenerateResponseError("Empty response from API")
-
-            # Save the audio file
-            with open(filename, "wb") as f:
-                f.write(response.content)
-
-            if verbose:
-                ic.configureOutput(prefix="DEBUG| ")
-                ic("Speech generated successfully")
-                ic.configureOutput(prefix="DEBUG| ")
-                ic(f"Model: {model}")
-                ic.configureOutput(prefix="DEBUG| ")
-                ic(f"Voice: {voice}")
-                ic.configureOutput(prefix="DEBUG| ")
-                ic(f"Format: {response_format}")
-                ic.configureOutput(prefix="DEBUG| ")
-                ic(f"Audio saved to {filename}")
-
-            return filename.as_posix()
-
-        except CurlError as e:
-            if verbose:
-                ic.configureOutput(prefix="DEBUG| ")
-                ic(f"Failed to generate speech: {e}")
-            raise exceptions.FailedToGenerateResponseError(f"Failed to generate speech: {e}")
-        except Exception as e:
-            if verbose:
-                ic.configureOutput(prefix="DEBUG| ")
-                ic(f"Unexpected error: {e}")
-            raise exceptions.FailedToGenerateResponseError(
-                f"Unexpected error during speech generation: {e}"
-            )
+                return filename.as_posix()
+                
+            except (CurlError, Exception) as e:
+                import time
+                last_error = e
+                # If we have run out of retries, we raise
+                if attempt == max_retries - 1:
+                    if verbose:
+                        ic.configureOutput(prefix="DEBUG| ")
+                        ic(f"Final error after {max_retries} attempts: {str(e)}")
+                    raise exceptions.FailedToGenerateResponseError(f"Failed to generate speech after {max_retries} attempts: {str(e)}")
+                time.sleep(1)
 
     def create_speech(
         self,

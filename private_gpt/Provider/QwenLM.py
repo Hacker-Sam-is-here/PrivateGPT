@@ -105,6 +105,10 @@ class QwenLM(Provider):
         self.session.cookies.update(self.cookies_dict)
         if proxies:
             self.session.proxies.update(proxies)
+        elif qwen_lm_proxy_manager:
+            pm_proxies = qwen_lm_proxy_manager.get()
+            if pm_proxies:
+                self.session.proxies.update(pm_proxies)
         self.chat_type = "t2t"  # search - used WEB, t2t - chatbot, t2i - image_gen
 
         self.__available_optimizers = (

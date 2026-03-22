@@ -1,4 +1,6 @@
 import json
+from private_gpt.Extra.proxy_manager import ProxyManager
+github_proxy_manager = ProxyManager()  # Fallback proxy manager
 import time
 from typing import Any, Dict, Generator, Optional, Union, cast
 
@@ -64,6 +66,18 @@ class GithubChat(Provider):
         self.cookie_path = cookie_path
         self.session = Session() # Use curl_cffi Session
         self.session.proxies.update(proxies)
+        if not proxies and github_proxy_manager:
+            pm_proxies = github_proxy_manager.get()
+            if pm_proxies:
+                self.session.proxies.update(pm_proxies)
+        if not proxies and github_proxy_manager:
+            pm_proxies = github_proxy_manager.get()
+            if pm_proxies:
+                self.session.proxies.update(pm_proxies)
+        if not proxies and github_proxy_manager:
+            pm_proxies = github_proxy_manager.get()
+            if pm_proxies:
+                self.session.proxies.update(pm_proxies)
 
         # Load cookies for authentication
         self.cookies = self.load_cookies()

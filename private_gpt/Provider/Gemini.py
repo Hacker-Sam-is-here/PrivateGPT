@@ -67,6 +67,10 @@ class GEMINI(Provider):
             raise TypeError("model must be a string alias or an instance of Model")
 
         # Initialize the Chatbot session using the cookie file.
+        if not proxy and gemini_proxy_manager:
+            pm_proxies = gemini_proxy_manager.get()
+            if pm_proxies:
+                proxy = pm_proxies
         self.session = Chatbot(cookie_file, proxy, timeout, selected_model)
         self.last_response = {}
         self.__available_optimizers = (
