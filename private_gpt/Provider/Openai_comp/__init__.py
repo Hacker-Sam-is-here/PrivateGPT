@@ -18,6 +18,7 @@ from private_gpt.Provider.Openai_comp.base import (
 )
 from private_gpt.Provider.Openai_comp.cerebras import Cerebras
 from private_gpt.Provider.Openai_comp.chatgpt import ChatGPT, ChatGPTReversed
+from private_gpt.Provider.Openai_comp.copilot import Copilot
 
 # Provider implementations
 from private_gpt.Provider.Openai_comp.DeepAI import DeepAI
@@ -98,6 +99,7 @@ __all__ = [
     "get_last_user_message",
     "count_tokens",
     # Provider implementations
+    "Copilot",
     "DeepAI",
     "PiAI",
     "TogetherAI",
