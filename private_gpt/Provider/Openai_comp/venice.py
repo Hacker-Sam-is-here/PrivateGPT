@@ -96,58 +96,75 @@ class VeniceCompletions(BaseCompletions):
         }
 
         def _generator():
-            proxies = pm.get() # Get proxy dict for this rotation
-
-            with Session(impersonate="chrome", headers=sess_headers, proxies=proxies, timeout=60) as session:
-                resp = session.post(
-                    "https://outerface.venice.ai/api/inference/chat",
-                    json=payload,
-                    stream=True
-                )
-
-                for line in resp.iter_lines():
-                    if not line:
-                        continue
-                    line_str = line.decode("utf-8").strip()
-
-                    if line_str.startswith("data: "):
-                        line_str = line_str[6:].strip()
-
-                    if line_str == "[DONE]":
-                        break
-
-                    try:
-                        data = json.loads(line_str)
-                        content = ""
-
-                        if "content" in data:
-                            content = data["content"]
-                        elif "choices" in data and len(data["choices"]) > 0:
-                            delta = data["choices"][0].get("delta", {})
-                            if "content" in delta:
-                                content = delta["content"]
-                            elif "text" in data["choices"][0]:
-                                content = data["choices"][0]["text"]
-
-                        if content:
-                            chunk = ChatCompletionChunk(
-                                id=f"chatcmpl-{uuid.uuid4()}",
-                                choices=[
-                                    Choice(
-                                        index=0,
-                                        delta=ChoiceDelta(content=content, role="assistant"),
-                                        logprobs=None,
-                                        finish_reason=None
+            max_retries = 20
+            last_err = None
+            for attempt in range(max_retries):
+                proxies = pm.get() # Get proxy dict for this rotation
+                
+                try:
+                    with Session(impersonate="chrome", headers=sess_headers, proxies=proxies, timeout=60) as session:
+                        resp = session.post(
+                            "https://outerface.venice.ai/api/inference/chat",
+                            json=payload,
+                            stream=True
+                        )
+                        
+                        # Check if successful response
+                        if resp.status_code != 200:
+                            if attempt < max_retries - 1:
+                                continue
+                            raise Exception(f"Venice error: HTTP {resp.status_code} - {resp.text}")
+                        
+                        for line in resp.iter_lines():
+                            if not line:
+                                continue
+                            line_str = line.decode("utf-8").strip()
+                            
+                            if line_str.startswith("data: "):
+                                line_str = line_str[6:].strip()
+                                
+                            if line_str == "[DONE]":
+                                return # Clean exit
+                                
+                            try:
+                                data = json.loads(line_str)
+                                content = ""
+                                
+                                if "content" in data:
+                                    content = data["content"]
+                                elif "choices" in data and len(data["choices"]) > 0:
+                                    delta = data["choices"][0].get("delta", {})
+                                    if "content" in delta:
+                                        content = delta["content"]
+                                    elif "text" in data["choices"][0]:
+                                        content = data["choices"][0]["text"]
+                                
+                                if content:
+                                    chunk = ChatCompletionChunk(
+                                        id=f"chatcmpl-{uuid.uuid4()}",
+                                        choices=[
+                                            Choice(
+                                                index=0,
+                                                delta=ChoiceDelta(content=content, role="assistant"),
+                                                logprobs=None,
+                                                finish_reason=None
+                                            )
+                                        ],
+                                        created=int(time.time()),
+                                        model=model,
+                                        object="chat.completion.chunk"
                                     )
-                                ],
-                                created=int(time.time()),
-                                model=model,
-                                object="chat.completion.chunk"
-                            )
-                            yield chunk
-                    except json.JSONDecodeError:
-                        continue
-
+                                    yield chunk
+                            except json.JSONDecodeError:
+                                continue
+                        return # Finished successfully
+                                
+                except Exception as e:
+                    last_err = e
+                    continue # Retry on error
+                    
+            if last_err:
+                raise last_err
         if stream:
             return _generator()
         else:
