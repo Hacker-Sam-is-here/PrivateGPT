@@ -2,7 +2,7 @@ import json
 import os
 import time
 import uuid
-from typing import Optional, Union, Iterator, Any, Dict, List, Generator
+from typing import Any, Dict, Generator, Iterator, List, Optional, Union
 
 from curl_cffi.requests import Session
 
@@ -60,16 +60,33 @@ class VeniceCompletions(BaseCompletions):
         proxies: Optional[dict] = None,
         **kwargs: Any,
     ) -> Union[ChatCompletion, Generator[ChatCompletionChunk, None, None]]:
-        cookie_path = "venice_cookies.json"
+        api_key = kwargs.get("api_key")
 
-        if not os.path.exists(cookie_path):
-            raise Exception("venice_cookies.json not found")
+        # If the user passed venice_cookies.json as api_key, load it.
+        # Otherwise, if they passed raw json or cookie string, use that.
+        if api_key and api_key.endswith(".json") and os.path.exists(api_key):
+            cookie_path = api_key
+        else:
+            cookie_path = "venice_cookies.json"
 
-        with open(cookie_path) as f:
-            cookie_list = json.load(f)
+        if api_key and not api_key.endswith(".json"):
+            try:
+                # Try to parse as raw JSON dump
+                cookie_list = json.loads(api_key)
+            except Exception:
+                # Or just treat as raw cookie string
+                cookie_list = None
+                cookie_str = api_key
+        else:
+            if not os.path.exists(cookie_path):
+                raise Exception(f"{cookie_path} not found")
 
-        cookies = {c["name"]: c["value"] for c in cookie_list if c.get("value")}
-        cookie_str = "; ".join([f"{k}={v}" for k, v in cookies.items()])
+            with open(cookie_path) as f:
+                cookie_list = json.load(f)
+
+        if cookie_list:
+            cookies = {c["name"]: c["value"] for c in cookie_list if c.get("value")}
+            cookie_str = "; ".join([f"{k}={v}" for k, v in cookies.items()])
 
         sess_headers = VENICE_HEADERS.copy()
         sess_headers["cookie"] = cookie_str
@@ -100,7 +117,7 @@ class VeniceCompletions(BaseCompletions):
             last_err = None
             for attempt in range(max_retries):
                 proxies = pm.get() # Get proxy dict for this rotation
-                
+
                 try:
                     with Session(impersonate="chrome", headers=sess_headers, proxies=proxies, timeout=60) as session:
                         resp = session.post(
@@ -108,28 +125,28 @@ class VeniceCompletions(BaseCompletions):
                             json=payload,
                             stream=True
                         )
-                        
+
                         # Check if successful response
                         if resp.status_code != 200:
                             if attempt < max_retries - 1:
                                 continue
                             raise Exception(f"Venice error: HTTP {resp.status_code} - {resp.text}")
-                        
+
                         for line in resp.iter_lines():
                             if not line:
                                 continue
                             line_str = line.decode("utf-8").strip()
-                            
+
                             if line_str.startswith("data: "):
                                 line_str = line_str[6:].strip()
-                                
+
                             if line_str == "[DONE]":
                                 return # Clean exit
-                                
+
                             try:
                                 data = json.loads(line_str)
                                 content = ""
-                                
+
                                 if "content" in data:
                                     content = data["content"]
                                 elif "choices" in data and len(data["choices"]) > 0:
@@ -138,7 +155,7 @@ class VeniceCompletions(BaseCompletions):
                                         content = delta["content"]
                                     elif "text" in data["choices"][0]:
                                         content = data["choices"][0]["text"]
-                                
+
                                 if content:
                                     chunk = ChatCompletionChunk(
                                         id=f"chatcmpl-{uuid.uuid4()}",
@@ -158,11 +175,11 @@ class VeniceCompletions(BaseCompletions):
                             except json.JSONDecodeError:
                                 continue
                         return # Finished successfully
-                                
+
                 except Exception as e:
                     last_err = e
                     continue # Retry on error
-                    
+
             if last_err:
                 raise last_err
         if stream:
