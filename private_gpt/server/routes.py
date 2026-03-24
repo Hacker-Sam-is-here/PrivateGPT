@@ -370,6 +370,12 @@ class Api:
                     provider_class.__name__,
                 )
 
+                # Extract api_key from Bearer if present
+                if "authorization" in request.headers:
+                    auth_header = request.headers["authorization"]
+                    if auth_header.startswith("Bearer "):
+                        params["api_key"] = auth_header[7:].strip()
+
                 # Extract client IP address
                 client_ip = request.client.host if request.client else "unknown"
                 if "x-forwarded-for" in request.headers:
