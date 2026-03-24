@@ -36,7 +36,7 @@ def initialize_provider_map() -> None:
                 and obj.__name__ != "OpenAICompatibleProvider"
             ):
                 # Only include providers that don't require authentication, with an exception for Copilot
-                is_exception = obj.__name__ in ("Copilot",)
+                is_exception = obj.__name__ in ("Copilot", "Venice")
                 if is_exception or (hasattr(obj, 'required_auth') and not getattr(obj, 'required_auth', True)):
                     provider_name = obj.__name__
                     AppConfig.provider_map[provider_name] = obj

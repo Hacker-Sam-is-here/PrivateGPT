@@ -47,6 +47,7 @@ from private_gpt.Provider.Openai_comp.toolbaz import Toolbaz
 from private_gpt.Provider.Openai_comp.TwoAI import TwoAI
 from private_gpt.Provider.Openai_comp.typliai import TypliAI
 from private_gpt.Provider.Openai_comp.upstage import Upstage
+from private_gpt.Provider.Openai_comp.venice import Venice
 from private_gpt.Provider.Openai_comp.utils import (
     ChatCompletion,
     ChatCompletionChunk,
@@ -138,6 +139,7 @@ __all__ = [
     "Sambanova",
     "Meta",
     "TypliAI",
+    "Venice",
 ]
 
 # --- Dynamic Legacy Providers Loading ---
