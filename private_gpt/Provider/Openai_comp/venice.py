@@ -119,7 +119,12 @@ class VeniceCompletions(BaseCompletions):
                 proxies = pm.get() # Get proxy dict for this rotation
 
                 try:
-                    with Session(impersonate="chrome", headers=sess_headers, proxies=proxies, timeout=60) as session:
+                    with Session(
+                        impersonate="chrome",
+                        headers=sess_headers,
+                        proxies=proxies,
+                        timeout=timeout or 300
+                    ) as session:
                         resp = session.post(
                             "https://outerface.venice.ai/api/inference/chat",
                             json=payload,
