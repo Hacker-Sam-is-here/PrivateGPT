@@ -71,6 +71,51 @@ class ProxyManager:
                 ic(f"Failed to fetch public proxies: {e}")
         return []
 
+    async def _fetch_free_proxy_list(self) -> list[str]:
+        """Fetch proxies from free-proxy-list.net and test them."""
+        try:
+            import random
+            import re
+
+            async with httpx.AsyncClient() as client:
+                r = await client.get("https://free-proxy-list.net/", timeout=10)
+
+                # Use regex to extract all IP:PORT combinations from the raw HTML
+                proxies = re.findall(r'\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}:[0-9]{2,5}\b', r.text)
+
+                # Remove duplicates while preserving order
+                proxies = list(dict.fromkeys(proxies))
+
+                if not proxies:
+                    return []
+
+                # Test a random subset to save time
+                random.shuffle(proxies)
+                proxies = proxies[:50]
+
+                async def test_proxy(p):
+                    try:
+                        async with httpx.AsyncClient(proxy=f"http://{p}", timeout=5) as test_client:
+                            resp = await test_client.get("http://httpbin.org/ip")
+                            if resp.status_code == 200:
+                                return f"http://{p}"
+                    except Exception:
+                        pass
+                    return None
+
+                tasks = [test_proxy(p) for p in proxies]
+                results = await asyncio.gather(*tasks)
+                working = [p for p in results if p]
+
+                if self.debug:
+                    ic(f"Found {len(working)} working proxies from free-proxy-list.net")
+
+                return working
+        except Exception as e:
+            if self.debug:
+                ic(f"Failed to fetch free-proxy-list: {e}")
+        return []
+
     async def _fetch_urban_proxies(self) -> list[str]:
         """Fetch proxies from Urban VPN API."""
         import random
@@ -78,7 +123,7 @@ class ProxyManager:
         with self._lock:
             if self._proxies:
                 proxy_urls = random.sample(self._proxies, min(3, len(self._proxies))) + [None]
-        
+
         last_err = None
         for proxy_url in proxy_urls:
             client_kwargs = {"headers": self._headers, "timeout": 15}
@@ -93,12 +138,12 @@ class ProxyManager:
                             "clientApp": {"name": "URBAN_VPN_BROWSER_EXTENSION", "browser": "CHROME"}
                         },
                     )
-                    
+
                     if r.status_code == 429:
                         if self.debug:
                             ic("Urban VPN rate limited. Falling back to public free proxy list...")
                         return await self._fetch_public_proxies()
-                        
+
                     r.raise_for_status()
                     anon_response = r.json()
                     if "value" not in anon_response:
@@ -183,7 +228,17 @@ class ProxyManager:
     def _background_refresh(self) -> None:
         """Background loop to refresh proxies."""
         while True:
-            proxies = asyncio.run(self._fetch_urban_proxies())
+            # 1. First priority: free-proxy-list.net
+            proxies = asyncio.run(self._fetch_free_proxy_list())
+
+            # 2. Second priority: GitHub reliable list
+            if not proxies:
+                proxies = asyncio.run(self._fetch_public_proxies())
+
+            # 3. Third priority: Urban VPN
+            if not proxies:
+                proxies = asyncio.run(self._fetch_urban_proxies())
+
             if proxies:
                 with self._lock:
                     # Replace old proxies to avoid 407 Proxy Authentication errors
@@ -196,7 +251,7 @@ class ProxyManager:
                     pass
                 if self.debug:
                     ic(f"Refreshed {len(proxies)} proxies background")
-            time.sleep(1800)  # Refresh every 30 mins
+            time.sleep(300)  # Refresh every 5 mins
 
     def get(self) -> dict[str, str]:
         """Get next proxy in rotation."""

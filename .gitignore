@@ -172,3 +172,4 @@ _plans/*
 .zenflow/
 .blackboxrules
 .claudecached_proxies.txt
+venice_cookies.json
